@@ -22,7 +22,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { Category, createCategory, deleteCategory, updateCategory } from "../actions/api"
 import { Pencil, Plus, Trash } from 'lucide-react'
 import {
@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/alert-dialog"
 
 export function CategoriesTab({ initialCategories }: { initialCategories: Category[] }) {
-  const [categories, setCategories] = useState(initialCategories)
+  const [categories, setCategories] = useState<Category[]>(Array.isArray(initialCategories) ? initialCategories : [])
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const { toast } = useToast()
 

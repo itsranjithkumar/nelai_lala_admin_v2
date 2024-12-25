@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { 
   Category,
   MenuItem,
@@ -57,7 +57,7 @@ export function MenuItemsTab({
   initialMenuItems: MenuItem[]
   initialCategories: Category[]
 }) {
-  const [menuItems, setMenuItems] = useState(initialMenuItems)
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(Array.isArray(initialMenuItems) ? initialMenuItems : [])
   const [editingMenuItem, setEditingMenuItem] = useState<MenuItem | null>(null)
   const { toast } = useToast()
 
