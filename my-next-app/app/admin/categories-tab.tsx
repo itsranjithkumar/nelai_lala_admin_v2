@@ -38,7 +38,10 @@ import {
 } from "@/components/ui/alert-dialog"
 
 export function CategoriesTab({ initialCategories }: { initialCategories: Category[] }) {
-  const [categories, setCategories] = useState<Category[]>(Array.isArray(initialCategories) ? initialCategories : [])
+
+  const [categories, setCategories] = useState<Category[]>(
+    Array.isArray(initialCategories) ? initialCategories : []
+  )
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const { toast } = useToast()
 
@@ -135,6 +138,7 @@ export function CategoriesTab({ initialCategories }: { initialCategories: Catego
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>Description</TableHead>
+            <TableHead>Image</TableHead>
             <TableHead className="w-[100px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -142,7 +146,16 @@ export function CategoriesTab({ initialCategories }: { initialCategories: Catego
           {categories.map((category) => (
             <TableRow key={category.id}>
               <TableCell>{category.name}</TableCell>
-              <TableCell>{category.description}</TableCell>
+              <TableCell>{category.description || 'No description'}</TableCell>
+              <TableCell>
+                {category.imageUrl && (
+                  <img 
+                    src={category.imageUrl} 
+                    alt={category.name} 
+                    className="w-16 h-16 object-cover rounded"
+                  />
+                )}
+              </TableCell>
               <TableCell>
                 <div className="flex gap-2">
                   <Dialog>
@@ -188,4 +201,3 @@ export function CategoriesTab({ initialCategories }: { initialCategories: Catego
     </div>
   )
 }
-

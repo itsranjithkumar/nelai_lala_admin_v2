@@ -4,6 +4,7 @@ export type Category = {
   id: string
   name: string
   description?: string
+  imageUrl?: string
 }
 
 export type MenuItem = {
@@ -21,7 +22,15 @@ const API_BASE = 'https://nelai-lala-backend.vercel.app/api'
 export async function getCategories(): Promise<Category[]> {
   const res = await fetch(`${API_BASE}/categories`)
   if (!res.ok) throw new Error('Failed to fetch categories')
-  return res.json()
+  const data = await res.json()
+  
+  // Transform API response to match our Category type
+  return (data.categories || []).map((category: any) => ({
+    id: category._id,
+    name: category.name,
+    description: category.description,
+    imageUrl: category.imageUrl
+  }))
 }
 
 export async function createCategory(data: Omit<Category, 'id'>) {
@@ -86,4 +95,3 @@ export async function deleteMenuItem(id: string) {
   if (!res.ok) throw new Error('Failed to delete menu item')
   return res.json()
 }
-
