@@ -117,3 +117,47 @@ export async function deleteMenuItem(id: string) {
   if (!res.ok) throw new Error('Failed to delete menu item')
   return res.json()
 }
+
+export async function uploadImage(file: File) {
+  // Validate file before upload
+  if (!file) {
+    throw new Error('No file provided')
+  }
+
+  // Log file details for debugging
+  console.log('File to upload:', {
+    name: file.name,
+    type: file.type,
+    size: file.size
+  })
+
+  const formData = new FormData()
+  formData.append('file', file)  // Changed from 'image' to 'file' to match backend expectation
+
+  try {
+    const res = await fetch(`${API_BASE}/image_upload`, {
+      method: 'POST',
+      body: formData,
+    })
+
+    // Log full response for debugging
+    const responseText = await res.text()
+    console.log('Upload Response:', responseText)
+
+    if (!res.ok) {
+      console.error('Upload Error Response:', responseText)
+      throw new Error(responseText || 'Failed to upload image')
+    }
+
+    // Parse response if it's valid JSON
+    try {
+      const result = JSON.parse(responseText)
+      return result
+    } catch {
+      throw new Error('Invalid response from server')
+    }
+  } catch (error) {
+    console.error('Image Upload Error:', error)
+    throw error
+  }
+}

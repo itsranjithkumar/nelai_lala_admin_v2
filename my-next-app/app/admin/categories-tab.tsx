@@ -24,6 +24,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { Category, createCategory, deleteCategory, updateCategory } from "../actions/api"
+import { uploadImage } from "../actions/api"
 import { Pencil, Plus, Trash } from 'lucide-react'
 import {
   AlertDialog,
@@ -43,17 +44,68 @@ export function CategoriesTab({ initialCategories }: { initialCategories: Catego
     Array.isArray(initialCategories) ? initialCategories : []
   )
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
+  const [imageFile, setImageFile] = useState<File | null>(null)
   const { toast } = useToast()
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif']
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          title: "Invalid File Type",
+          description: "Only JPEG, PNG, and GIF are allowed.",
+          variant: "destructive"
+        })
+        return
+      }
+
+      // Additional file size validation (e.g., max 5MB)
+      const maxSizeInBytes = 5 * 1024 * 1024 // 5MB
+      if (file.size > maxSizeInBytes) {
+        toast({
+          title: "File Too Large",
+          description: "Image must be less than 5MB.",
+          variant: "destructive"
+        })
+        return
+      }
+
+      setImageFile(file)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
-    const data = {
-      name: formData.get("name") as string,
-      description: formData.get("description") as string,
-    }
-
+    
+    let imageUrl: string | undefined
+    
     try {
+      // Upload image if a file is selected
+      if (imageFile) {
+        try {
+          const uploadResult = await uploadImage(imageFile)
+          imageUrl = uploadResult.imageUrl
+        } catch (uploadError) {
+          toast({
+            title: "Image Upload Failed",
+            description: uploadError instanceof Error 
+              ? uploadError.message 
+              : "Failed to upload image. Please try again.",
+            variant: "destructive"
+          })
+          return  // Stop submission if image upload fails
+        }
+      }
+
+      const data = {
+        name: formData.get("name") as string,
+        description: formData.get("description") as string,
+        imageUrl: imageUrl
+      }
+
       if (editingCategory) {
         const updated = await updateCategory(editingCategory.id, data)
         setCategories(categories.map(c => c.id === editingCategory.id ? { ...c, ...updated } : c))
@@ -63,7 +115,9 @@ export function CategoriesTab({ initialCategories }: { initialCategories: Catego
         setCategories([...categories, created])
         toast({ title: "Category created successfully" })
       }
+      
       setEditingCategory(null)
+      setImageFile(null)
       
       // Trigger page refresh
       if (typeof window !== 'undefined') {
@@ -129,7 +183,7 @@ export function CategoriesTab({ initialCategories }: { initialCategories: Catego
           <DialogContent>
             <form onSubmit={handleSubmit}>
               <DialogHeader>
-                <DialogTitle>Add Category</DialogTitle>
+                <DialogTitle>{editingCategory ? 'Edit' : 'Add'} Category</DialogTitle>
                 <DialogDescription>
                   Fill in the details for the category.
                 </DialogDescription>
@@ -141,6 +195,7 @@ export function CategoriesTab({ initialCategories }: { initialCategories: Catego
                     id="name"
                     name="name"
                     required
+                    defaultValue={editingCategory?.name}
                   />
                 </div>
                 <div className="grid gap-2">
@@ -148,7 +203,36 @@ export function CategoriesTab({ initialCategories }: { initialCategories: Catego
                   <Textarea
                     id="description"
                     name="description"
+                    defaultValue={editingCategory?.description || ''}
                   />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="image">Category Image</Label>
+                  <Input
+                    id="image"
+                    name="image"
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif"
+                    onChange={handleImageChange}
+                  />
+                  {imageFile && (
+                    <div className="mt-2">
+                      <img 
+                        src={URL.createObjectURL(imageFile)} 
+                        alt="Preview" 
+                        className="w-32 h-32 object-cover rounded"
+                      />
+                    </div>
+                  )}
+                  {editingCategory?.imageUrl && !imageFile && (
+                    <div className="mt-2">
+                      <img 
+                        src={editingCategory.imageUrl} 
+                        alt="Current" 
+                        className="w-32 h-32 object-cover rounded"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
               <DialogFooter>
@@ -219,6 +303,34 @@ export function CategoriesTab({ initialCategories }: { initialCategories: Catego
                               name="description"
                               defaultValue={category.description}
                             />
+                          </div>
+                          <div className="grid gap-2">
+                            <Label htmlFor="image">Category Image</Label>
+                            <Input
+                              id="image"
+                              name="image"
+                              type="file"
+                              accept="image/jpeg,image/png,image/gif"
+                              onChange={handleImageChange}
+                            />
+                            {imageFile && (
+                              <div className="mt-2">
+                                <img 
+                                  src={URL.createObjectURL(imageFile)} 
+                                  alt="Preview" 
+                                  className="w-32 h-32 object-cover rounded"
+                                />
+                              </div>
+                            )}
+                            {category.imageUrl && !imageFile && (
+                              <div className="mt-2">
+                                <img 
+                                  src={category.imageUrl} 
+                                  alt="Current" 
+                                  className="w-32 h-32 object-cover rounded"
+                                />
+                              </div>
+                            )}
                           </div>
                         </div>
                         <DialogFooter>
