@@ -57,7 +57,6 @@ export function CategoriesTab({ initialCategories }: { initialCategories: Catego
       if (editingCategory) {
         const updated = await updateCategory(editingCategory.id, data)
         setCategories(categories.map(c => c.id === editingCategory.id ? { ...c, ...updated } : c))
-        console.log('Categories after update:', categories.map(c => c.id));
         toast({ title: "Category updated successfully" })
       } else {
         const created = await createCategory(data)
@@ -65,6 +64,11 @@ export function CategoriesTab({ initialCategories }: { initialCategories: Catego
         toast({ title: "Category created successfully" })
       }
       setEditingCategory(null)
+      
+      // Trigger page refresh
+      if (typeof window !== 'undefined') {
+        window.location.reload()
+      }
     } catch (error) {
       toast({ 
         title: "Error",
