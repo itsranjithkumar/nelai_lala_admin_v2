@@ -80,13 +80,36 @@ export function CategoriesTab({ initialCategories }: { initialCategories: Catego
 
   const handleDelete = async (id: string) => {
     try {
+      console.log('Attempting to delete category with ID:', id)
+      console.log('Current categories:', categories.map(c => c.id))
+      
+      // Verify the category exists before attempting to delete
+      const categoryToDelete = categories.find(c => c.id === id)
+      if (!categoryToDelete) {
+        console.error('Category not found:', id)
+        toast({
+          title: "Category Not Found",
+          description: `No category found with ID: ${id}`,
+          variant: "destructive"
+        })
+        return
+      }
+
       await deleteCategory(id)
-      setCategories(categories.filter(c => c.id !== id))
-      toast({ title: "Category deleted successfully" })
-    } catch (error) {
+      const updatedCategories = categories.filter(c => c.id !== id)
+      setCategories(updatedCategories)
+      
       toast({ 
-        title: "Error",
-        description: "Something went wrong",
+        title: "Category Deleted",
+        description: `"${categoryToDelete.name}" has been successfully removed.`
+      })
+    } catch (error) {
+      console.error('Delete category error:', error)
+      toast({ 
+        title: "Error Deleting Category",
+        description: error instanceof Error 
+          ? error.message 
+          : "Unable to delete the category. Please try again.",
         variant: "destructive"
       })
     }

@@ -54,11 +54,33 @@ export async function updateCategory(id: string, data: Partial<Category>) {
 }
 
 export async function deleteCategory(id: string) {
-  const res = await fetch(`${API_BASE}/categories/${id}`, {
-    method: 'DELETE',
-  })
-  if (!res.ok) throw new Error('Failed to delete category')
-  return res.json()
+  try {
+    const res = await fetch(`${API_BASE}/categories/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    
+    if (!res.ok) {
+      let errorMessage = 'Failed to delete category'
+      try {
+        const errorBody = await res.json()
+        errorMessage = errorBody.error || errorMessage
+      } catch {
+        // If parsing JSON fails, use the text or status
+        errorMessage = await res.text() || `Status: ${res.status}`
+      }
+      
+      throw new Error(errorMessage)
+    }
+    
+    // Some APIs return empty response on successful delete
+    return res.json().catch(() => ({}))
+  } catch (error) {
+    console.error('Delete category error:', error)
+    throw error
+  }
 }
 
 // Menu Items CRUD
