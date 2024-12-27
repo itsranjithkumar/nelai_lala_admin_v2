@@ -101,7 +101,7 @@ export function CategoriesTab({ initialCategories }: { initialCategories: Catego
           <DialogContent>
             <form onSubmit={handleSubmit}>
               <DialogHeader>
-                <DialogTitle>{editingCategory ? 'Edit' : 'Add'} Category</DialogTitle>
+                <DialogTitle>Add Category</DialogTitle>
                 <DialogDescription>
                   Fill in the details for the category.
                 </DialogDescription>
@@ -112,7 +112,6 @@ export function CategoriesTab({ initialCategories }: { initialCategories: Catego
                   <Input
                     id="name"
                     name="name"
-                    defaultValue={editingCategory?.name}
                     required
                   />
                 </div>
@@ -121,7 +120,6 @@ export function CategoriesTab({ initialCategories }: { initialCategories: Catego
                   <Textarea
                     id="description"
                     name="description"
-                    defaultValue={editingCategory?.description}
                   />
                 </div>
               </div>
@@ -158,7 +156,7 @@ export function CategoriesTab({ initialCategories }: { initialCategories: Catego
               </TableCell>
               <TableCell>
                 <div className="flex gap-2">
-                  <Dialog>
+                  <Dialog open={editingCategory === category} onOpenChange={(open) => !open && setEditingCategory(null)}>
                     <DialogTrigger asChild>
                       <Button
                         variant="ghost"
@@ -168,6 +166,38 @@ export function CategoriesTab({ initialCategories }: { initialCategories: Catego
                         <Pencil className="h-4 w-4" />
                       </Button>
                     </DialogTrigger>
+                    <DialogContent>
+                      <form onSubmit={handleSubmit}>
+                        <DialogHeader>
+                          <DialogTitle>Edit Category</DialogTitle>
+                          <DialogDescription>
+                            Update the details for the category.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                          <div className="grid gap-2">
+                            <Label htmlFor="name">Name</Label>
+                            <Input
+                              id="name"
+                              name="name"
+                              defaultValue={category.name}
+                              required
+                            />
+                          </div>
+                          <div className="grid gap-2">
+                            <Label htmlFor="description">Description</Label>
+                            <Textarea
+                              id="description"
+                              name="description"
+                              defaultValue={category.description}
+                            />
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button type="submit">Save</Button>
+                        </DialogFooter>
+                      </form>
+                    </DialogContent>
                   </Dialog>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
