@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -45,7 +45,55 @@ export function CategoriesTab({ initialCategories }: { initialCategories: Catego
   )
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
+  const [categoryNameError, setCategoryNameError] = useState<string | null>(null)
+  const [nameValidation, setNameValidation] = useState<{
+    isValid: boolean;
+    message: string | null;
+    color: string;
+  }>({
+    isValid: editingCategory ? true : false, 
+    message: null, 
+    color: 'gray'
+  })
   const { toast } = useToast()
+
+  // Real-time category name validation
+  const validateCategoryName = useCallback((name: string) => {
+    // Trim and remove extra whitespaces
+    const trimmedName = name.trim().replace(/\s+/g, ' ')
+    
+    // Skip validation for empty names
+    if (trimmedName.length < 1) {
+      setCategoryNameError(null)
+      return { 
+        isValid: false, 
+        message: null, 
+        color: 'gray' 
+      }
+    }
+
+    // Check if the name already exists (excluding the current editing category)
+    const nameExists = categories.some(category => 
+      category.name === trimmedName && 
+      (!editingCategory || category.id !== editingCategory.id)
+    )
+
+    if (nameExists) {
+      setCategoryNameError(`Category "${trimmedName}" already exists.`)
+      return { 
+        isValid: false, 
+        message: `"${trimmedName}" is already taken`, 
+        color: 'red' 
+      }
+    } else {
+      setCategoryNameError(null)
+      return { 
+        isValid: true, 
+        message: `"${trimmedName}" is available`, 
+        color: 'green' 
+      }
+    }
+  }, [categories, editingCategory])
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -100,28 +148,53 @@ export function CategoriesTab({ initialCategories }: { initialCategories: Catego
         }
       }
 
+      const name = formData.get("name") as string
+      
+      // Validate name before submission
+      const validationResult = validateCategoryName(name)
+      if (!validationResult.isValid) {
+        return
+      }
+
       const data = {
-        name: formData.get("name") as string,
+        name: name,
         description: formData.get("description") as string,
         imageUrl: imageUrl
       }
 
-      if (editingCategory) {
-        const updated = await updateCategory(editingCategory.id, data)
-        setCategories(categories.map(c => c.id === editingCategory.id ? { ...c, ...updated } : c))
-        toast({ title: "Category updated successfully" })
-      } else {
-        const created = await createCategory(data)
-        setCategories([...categories, created])
-        toast({ title: "Category created successfully" })
-      }
-      
-      setEditingCategory(null)
-      setImageFile(null)
-      
-      // Trigger page refresh
-      if (typeof window !== 'undefined') {
-        window.location.reload()
+      try {
+        if (editingCategory) {
+          const updated = await updateCategory(editingCategory.id, data)
+          setCategories(categories.map(c => c.id === editingCategory.id ? { ...c, ...updated } : c))
+          toast({ 
+            title: "Category Updated", 
+            description: `"${data.name}" has been successfully updated.` 
+          })
+        } else {
+          const created = await createCategory(data)
+          setCategories([...categories, created])
+          toast({ 
+            title: "Category Created", 
+            description: `"${data.name}" has been successfully added.` 
+          })
+        }
+        
+        setEditingCategory(null)
+        setImageFile(null)
+        
+        // Trigger page refresh
+        if (typeof window !== 'undefined') {
+          window.location.reload()
+        }
+      } catch (categoryError) {
+        // Handle specific category creation/update errors
+        toast({ 
+          title: "Category Error",
+          description: categoryError instanceof Error 
+            ? categoryError.message 
+            : "An error occurred while saving the category.",
+          variant: "destructive"
+        })
       }
     } catch (error) {
       toast({ 
@@ -191,12 +264,30 @@ export function CategoriesTab({ initialCategories }: { initialCategories: Catego
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
                   <Label htmlFor="name">Name</Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    required
-                    defaultValue={editingCategory?.name}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="name"
+                      name="name"
+                      required
+                      defaultValue={editingCategory?.name}
+                      onChange={(e) => {
+                        const result = validateCategoryName(e.target.value)
+                        setNameValidation(result)
+                        setCategoryNameError(result.message)
+                      }}
+                    />
+                    {nameValidation.message && (
+                      <p 
+                        className={`text-sm mt-1 ${
+                          nameValidation.message.includes('available') 
+                            ? 'text-green-500' 
+                            : 'text-red-500'
+                        }`}
+                      >
+                        {nameValidation.message}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="description">Description</Label>
@@ -236,7 +327,12 @@ export function CategoriesTab({ initialCategories }: { initialCategories: Catego
                 </div>
               </div>
               <DialogFooter>
-                <Button type="submit">Save</Button>
+                <Button 
+                  type="submit" 
+                  disabled={!nameValidation.isValid}
+                >
+                  Save
+                </Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -289,12 +385,30 @@ export function CategoriesTab({ initialCategories }: { initialCategories: Catego
                         <div className="grid gap-4 py-4">
                           <div className="grid gap-2">
                             <Label htmlFor="name">Name</Label>
-                            <Input
-                              id="name"
-                              name="name"
-                              defaultValue={category.name}
-                              required
-                            />
+                            <div className="relative">
+                              <Input
+                                id="name"
+                                name="name"
+                                defaultValue={category.name}
+                                required
+                                onChange={(e) => {
+                                  const result = validateCategoryName(e.target.value)
+                                  setNameValidation(result)
+                                  setCategoryNameError(result.message)
+                                }}
+                              />
+                              {nameValidation.message && (
+                                <p 
+                                  className={`text-sm mt-1 ${
+                                    nameValidation.message.includes('available') 
+                                      ? 'text-green-500' 
+                                      : 'text-red-500'
+                                  }`}
+                                >
+                                  {nameValidation.message}
+                                </p>
+                              )}
+                            </div>
                           </div>
                           <div className="grid gap-2">
                             <Label htmlFor="description">Description</Label>
@@ -334,7 +448,12 @@ export function CategoriesTab({ initialCategories }: { initialCategories: Catego
                           </div>
                         </div>
                         <DialogFooter>
-                          <Button type="submit">Save</Button>
+                          <Button 
+                            type="submit" 
+                            disabled={!nameValidation.isValid}
+                          >
+                            Save
+                          </Button>
                         </DialogFooter>
                       </form>
                     </DialogContent>
